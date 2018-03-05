@@ -40,38 +40,37 @@ public class ServerMT extends Thread {
 		/**
 		 *
 		 * @param s le socket serveur
-		 * @param numeroClient le numéro client attribué par le serveur
-		 * @param tempsJeu est initialisé à 0 seconde
+		 * @param numeroClient le numÃ©ro client attribuÃ© par le serveur
+		 * @param tempsJeu est initialisÃ© Ã  0 seconde
 		 */
 
 		public Game(Socket s) {
 			System.out.println("LANCEMENT D'UNE NOUVELLE PARTIE");
 			this.socket = s;
-			this.cltNumber = numeroClient;//la inner classe a accés aux membres de la classe parent
+			this.cltNumber = numeroClient;//la inner classe a accÃ©s aux membres de la classe parent
 			this.tempsJeu=0;
 		}
 
-		private Joueur inJoueur(socket s){
+		private Joueur inJoueur(){
 			ObjectOutputStream outToClient;
             ObjectInputStream inFromClient;
 
-            outToClient = new ObjectOutputStream(s.getOutputStream());
+            outToClient = new ObjectOutputStream(socket.getOutputStream());
 		   	Thread.sleep(1000);
 		   	outToClient.writeUTF("wait-Joueur");
 		   	outToClient.flush();
 
 		   	Thread.sleep(1000); 
-		   	inFromClient = new ObjectInputStream (s.getInputStream());
+		   	inFromClient = new ObjectInputStream (socket.getInputStream());
 		   	Joueur j = (Joueur) inFromClient.readObject();
 
 		   	return j;
 		}
 
-		private void outJoueur(Joueur j, socket s){
+		private void outJoueur(Joueur j){
 			ObjectOutputStream outToClient;
-            ObjectInputStream inFromClient;
 
-            outToClient = new ObjectOutputStream(s.getOutputStream());
+            outToClient = new ObjectOutputStream(socket.getOutputStream());
 		   	Thread.sleep(1000);
 		   	outToClient.writeObject(j);
 		   	outToClient.flush();
@@ -93,9 +92,9 @@ public class ServerMT extends Thread {
             	Joueur j;
 				
 				System.out.println("RECUPERATION DE L'ADRESSE IP");
-				// récupération de l'adresse IP
+				// rÃ©cupÃ©ration de l'adresse IP
 				String ip = socket.getRemoteSocketAddress().toString();
-				System.out.println("CLIENT " + numeroClient + " connecté ip  =" + ip);
+				System.out.println("CLIENT " + numeroClient + " connectÃ© ip  =" + ip);
 
 				//Authentification avec le client
 				outToClient = new ObjectOutputStream(s.getOutputStream());
@@ -113,8 +112,24 @@ public class ServerMT extends Thread {
 				   	}else if(rep.equalsIgnoreCase("joueur-infos")){
 				   		outJoueur(j, s);
 				   	}else if(rep.equalsIgnoreCase("login")){
-				   		if(exists(j)){
-				   			
+				   		if(j){
+				   			if(login(j)){
+				   				outToClient = new ObjectOutputStream(s.getOutputStream());
+							   	Thread.sleep(1000);
+							   	outToClient.writeUTF("exist-Joueur");
+							   	outToClient.flush();
+				   			}else {
+				   				outToClient = new ObjectOutputStream(s.getOutputStream());
+							   	Thread.sleep(1000);
+							   	outToClient.writeUTF("new-Joueur");
+							   	outToClient.flush();
+							   	newJoueur(j);
+				   			}
+				   		}else {
+				   			outToClient = new ObjectOutputStream(s.getOutputStream());
+						   	Thread.sleep(1000);
+						   	outToClient.writeUTF("notset-Joueur");
+						   	outToClient.flush();
 				   		}
 				   	}
 				   	
@@ -135,7 +150,7 @@ public class ServerMT extends Thread {
 				   	String response = inFromClient.readUTF();
 				   	
 				   	if(response == "User-info"){
-				   		// Envoi du joueur enregistré
+				   		// Envoi du joueur enregistrÃ©
 					   	j = getJoueur(j);
 					   	outToClient = new ObjectOutputStream(s.getOutputStream());
 					   	Thread.sleep(1000);
@@ -171,10 +186,10 @@ public class ServerMT extends Thread {
 					String word = genererMot();
 					pw.println("C'EST PARTIE ! A TOI DE JOUER : ");
 					System.out.println("DEBUT DE LA PARTIE, CLIENT NUMERO = " + numeroClient+" A "+new Date());
-					System.out.println("Mot généré : " + word);
+					System.out.println("Mot gÃ©nÃ©rÃ© : " + word);
 					
 					
-					String rep;// la réponse
+					String rep;// la rÃ©ponse
 					String req;// la requete
 					int[] resultat;
 
@@ -195,17 +210,17 @@ public class ServerMT extends Thread {
 								rep = "C'EST TRISTE DE VOUS VOIR PARTIR !";
 								leaving();
 							}
-							// Test sur le nombre de caractères qui doit être égale à 5
+							// Test sur le nombre de caractÃ¨res qui doit Ãªtre Ã©gale Ã  5
 							if (req.length() == 5) {
 								resultat = verifierNbreLettreCorrecte(word, req);
 								if (resultat[0] == 5) 
-								{ // toutes les lettres sont à leurs places
+								{ // toutes les lettres sont Ã  leurs places
 									rep = "BRAVO "+ cltNumber +" TU A TROUVE LE MOT A DEVINER C'EST BIEN : " + word;
 									game = false;
 								} 
 								else if (resultat[1] == 5 && resultat[0] != 5) 
 								{
-									// toutes les lettres sont là mais pas dans l'ordre
+									// toutes les lettres sont lÃ  mais pas dans l'ordre
 									rep = "TU A TROUVE TOUTES LES LETTRES, MAINTNANT IL FAUT LES METTRE DANS L'ORDRE!!";
 								} 
 								else 
@@ -214,7 +229,7 @@ public class ServerMT extends Thread {
 											+ "\nNBRE DE LETTRES TROUVEES = " + resultat[1] + " TENTE ENCORE.";
 								}
 							} else {
-								// si nombre de caracères est trop grand ou insuffisant
+								// si nombre de caracÃ¨res est trop grand ou insuffisant
 								rep = "NOMBRE DE CARACTERE < OU > A 5 VOUS AVEZ ENVOYE " + req.length()
 										+ " CARACTERES.";
 							}
@@ -236,8 +251,8 @@ public class ServerMT extends Thread {
 			System.out.println("FIN DU GAME");
 		}
 		/**
-		 * leaving() méthode pour mettre fin au jeu
-		 * décrémente le nombre de client enregistré
+		 * leaving() mÃ©thode pour mettre fin au jeu
+		 * dÃ©crÃ©mente le nombre de client enregistrÃ©
 		 * met le thread en sleep pendant un seconde
 		 * interrompt le thread
 		 * ferme le socket pour la partie en cours
@@ -259,7 +274,7 @@ public class ServerMT extends Thread {
 
 	public static void main(String[] args) {
 		new ServerMT().start();
-		System.out.println("Après start");
+		System.out.println("AprÃ¨s start");
 	}
 	
 	private static synchronized String genererMot() {

@@ -28,11 +28,12 @@ public class Client {
         ObjectInputStream inFromServer;
         String message_sortant;
         String message_distant = "";
+        boolean auth = false;
 
         try {
             //demande d'ouverture d'une connexion sur le serveur de jeu et le numero de port 60000
             socket = new Socket(ipAddr, 60000);//args[0]
-            while (!message_distant.equalsIgnoreCase("disconnect")) {
+            while (!message_distant.equalsIgnoreCase("fin")) {
                 //attente du message serveur pour debut d'authentification
                 inFromServer = new ObjectInputStream(socket.getInputStream());
                 message_distant = inFromServer.readUTF();
@@ -41,10 +42,30 @@ public class Client {
                 //reponse au serveur avec l'objet Joueur
                 outToServer = new ObjectOutputStream(socket.getOutputStream());
                 if (message_distant.equalsIgnoreCase(new String("Auth-att"))) {
+                    do{
+                        inFromServer = new ObjectInputStream(socket.getInputStream());
+                        rep = inFromServer.readUTF();
 
-                    switch ()
-                    outToServer.writeObject(j);
-                    System.out.println("Authentification au prét du serveur (" + message_distant + ")");
+                        if(rep.equalsIgnoreCase("notset-Joueur")){
+                            sendJoueur(s, j);
+                        }else if(rep.equalsIgnoreCase("exist-Joueur")){
+                            
+                        }else if(rep.equalsIgnoreCase("new-Joueur")){
+                            auth = true;
+                        }else if(!auth){
+                            outToClient = new ObjectOutputStream(s.getOutputStream());
+                            Thread.sleep(1000);
+                            outToClient.writeUTF("login");
+                            outToClient.flush();
+                        }else if(auth){
+                            startGame = true;
+                            outToClient = new ObjectOutputStream(s.getOutputStream());
+                            Thread.sleep(1000);
+                            outToClient.writeUTF("game-start");
+                            outToClient.flush();
+                        }
+                    }while (rep.equalsIgnoreCase("disconnect"));
+
                 } else {
                     System.out.println("Le serveur à réfusé la connexion (" + message_distant + ")");
                 }
@@ -121,6 +142,31 @@ public class Client {
 
         // Joueur a partager avec le serveur.
         return new Joueur(nom, prenom, license); 
+    }
+
+    public static boolean sendJoueur(socket s, Joueur j){
+
+        ObjectOutputStream outToClient;
+        ObjectInputStream inFromClient;
+
+        outToClient = new ObjectOutputStream(s.getOutputStream());
+        Thread.sleep(1000);
+        outToClient.writeUTF("send-Joueur");
+        outToClient.flush();
+
+        Thread.sleep(1000); 
+        inFromClient = new ObjectInputStream (s.getInputStream());
+        String rep = inFromClient.readUTF();
+
+        if(rep.equalsIgnoreCase("wait-Joueur")){
+            outToClient = new ObjectOutputStream(s.getOutputStream());
+            Thread.sleep(1000);
+            outToClient.writeObject(j);
+            outToClient.flush();
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
