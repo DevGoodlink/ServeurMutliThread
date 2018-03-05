@@ -19,8 +19,6 @@ public class Client {
 
     public static void main(String[] args) {
 
-        Joueur j = joueurRegister();
-
         Socket socket;
         BufferedReader in;
         PrintWriter out;
@@ -29,6 +27,8 @@ public class Client {
         String message_sortant;
         String message_distant = "";
         boolean auth = false;
+
+        String ipAddre = ipAddress();
 
         try {
             //demande d'ouverture d'une connexion sur le serveur de jeu et le numero de port 60000
@@ -39,18 +39,24 @@ public class Client {
                 message_distant = inFromServer.readUTF();
                 System.out.println("message :" + message_distant);
 
-                //reponse au serveur avec l'objet Joueur
-                outToServer = new ObjectOutputStream(socket.getOutputStream());
                 if (message_distant.equalsIgnoreCase(new String("Auth-att"))) {
+                    String choice = menuAuth();
+
+                    if(choice.equalsIgnoreCase('connexion')){
+
+                    }else if(choice.equalsIgnoreCase('register')){
+
+                    }
+
                     do{
                         inFromServer = new ObjectInputStream(socket.getInputStream());
-                        rep = inFromServer.readUTF();
+                        message_distant = inFromServer.readUTF();
 
                         if(rep.equalsIgnoreCase("notset-Joueur")){
                             sendJoueur(s, j);
                         }else if(rep.equalsIgnoreCase("exist-Joueur")){
                             
-                        }else if(rep.equalsIgnoreCase("new-Joueur")){
+                        }else if(rep.equalsIgnoreCase("")){
                             auth = true;
                         }else if(!auth){
                             outToClient = new ObjectOutputStream(s.getOutputStream());
@@ -88,6 +94,42 @@ public class Client {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static String ipAddress(){
+
+        String ipAddr;
+        boolean ipAddrValid;
+
+        //Demande de l'adresse ip
+        do {
+            System.out.println("Entree l'adresse ip du serveur de jeu :");
+            ipAddr = sc.nextLine();
+            ipAddrValid = Client.validateIpAddress(ipAddr);
+            if (!ipAddrValid) {
+                System.err.println("Format de l'adresse ip invalid");
+            }
+            System.out.flush();
+        } while (!ipAddrValid);
+
+        return ipAddr;
+    }
+
+    public static String joueurLogin(){
+        String license;
+        boolean licenseValid;
+        //Demande de la license
+        do {
+            System.out.println("Entree votre clé de license :");
+            license = sc.nextLine();
+            licenseValid = Client.validateLicense(license);
+            if (!licenseValid) {
+                System.err.println("Format de la license invalid");
+            }
+            System.out.flush();
+        } while (!licenseValid);
+
+        return license;
     }
 
     public static Joueur joueurRegister(){
@@ -128,17 +170,6 @@ public class Client {
             }
             System.out.flush();
         } while (!prenomValid);
-        
-        //Demande de l'adresse ip
-        do {
-            System.out.println("Entree l'adresse ip du serveur de jeu :");
-            ipAddr = sc.nextLine();
-            ipAddrValid = Client.validateIpAddress(ipAddr);
-            if (!ipAddrValid) {
-                System.err.println("Format de l'adresse ip invalid");
-            }
-            System.out.flush();
-        } while (!ipAddrValid);
 
         // Joueur a partager avec le serveur.
         return new Joueur(nom, prenom, license); 
