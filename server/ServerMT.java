@@ -51,6 +51,32 @@ public class ServerMT extends Thread {
 			this.tempsJeu=0;
 		}
 
+		private Joueur inJoueur(socket s){
+			ObjectOutputStream outToClient;
+            ObjectInputStream inFromClient;
+
+            outToClient = new ObjectOutputStream(s.getOutputStream());
+		   	Thread.sleep(1000);
+		   	outToClient.writeUTF("wait-Joueur");
+		   	outToClient.flush();
+
+		   	Thread.sleep(1000); 
+		   	inFromClient = new ObjectInputStream (s.getInputStream());
+		   	Joueur j = (Joueur) inFromClient.readObject();
+
+		   	return j;
+		}
+
+		private void outJoueur(Joueur j, socket s){
+			ObjectOutputStream outToClient;
+            ObjectInputStream inFromClient;
+
+            outToClient = new ObjectOutputStream(s.getOutputStream());
+		   	Thread.sleep(1000);
+		   	outToClient.writeObject(j);
+		   	outToClient.flush();
+		}
+
 		public void run() {
 			System.out.println("INITIALISATION");
 			try {
@@ -60,11 +86,78 @@ public class ServerMT extends Thread {
 				BufferedReader br = new BufferedReader(isr);
 				OutputStream os = socket.getOutputStream();
 				PrintWriter pw = new PrintWriter(os, true);
+
+				ObjectOutputStream outToClient;
+            	ObjectInputStream inFromClient;
+
+            	Joueur j;
 				
 				System.out.println("RECUPERATION DE L'ADRESSE IP");
 				// récupération de l'adresse IP
 				String ip = socket.getRemoteSocketAddress().toString();
 				System.out.println("CLIENT " + numeroClient + " connecté ip  =" + ip);
+
+				//Authentification avec le client
+				outToClient = new ObjectOutputStream(s.getOutputStream());
+			   	Thread.sleep(1000);
+			   	outToClient.writeUTF("Auth-att");
+			   	outToClient.flush();
+
+			   	do {
+			   		Thread.sleep(1000); 
+				   	inFromClient = new ObjectInputStream (s.getInputStream());
+				   	String rep= inFromClient.readUTF();
+
+				   	if(rep.equalsIgnoreCase("send-Joueur")){
+				   		j = inJoueur();
+				   	}else if(rep.equalsIgnoreCase("joueur-infos")){
+				   		outJoueur(j, s);
+				   	}else if(rep.equalsIgnoreCase("login")){
+				   		if(exists(j)){
+				   			
+				   		}
+				   	}
+				   	
+				   	
+				} while (rep.equalsIgnoreCase("disconnect"));
+
+			   	
+
+			   	 if(login(j)){
+			   	 	// Envoi au serveur que le joueur exist
+			   	 	outToClient = new ObjectOutputStream(s.getOutputStream());
+				   	Thread.sleep(1000);
+				   	outToClient.writeUTF("Auth-User-exist");
+				   	outToClient.flush();
+
+				   	Thread.sleep(1000); 
+				   	inFromClient = new ObjectInputStream (s.getInputStream());
+				   	String response = inFromClient.readUTF();
+				   	
+				   	if(response == "User-info"){
+				   		// Envoi du joueur enregistré
+					   	j = getJoueur(j);
+					   	outToClient = new ObjectOutputStream(s.getOutputStream());
+					   	Thread.sleep(1000);
+					   	outToServer.writeObject(j);
+					   	outToClient.flush();
+				   	}
+				   	
+			   	 } else {
+				   	saveNewUser(j);
+				   	outToClient = new ObjectOutputStream(s.getOutputStream());
+				   	Thread.sleep(1000);
+				   	outToClient.writeUTF("Auth-User-new");
+				   	outToClient.flush();
+			   	 }
+
+				//reponse pour valider l'authentification
+				outToClient = new ObjectOutputStream(s.getOutputStream());
+				if(j!=null){
+		                    outToClient.writeUTF(new String("Auth-ok"));
+		                    outToClient.flush();
+				}
+
 				pw.println("BIENVENU VOUS ETES LE CLIENT NUM " + numeroClient);
 				
 				pw.println("PRET A JOUER AVEC MOI?[O/n]");

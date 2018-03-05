@@ -18,12 +18,63 @@ import java.util.logging.Logger;
 public class Client {
 
     public static void main(String[] args) {
-        
-        //Information sur le joueur
+
+        Joueur j = joueurRegister();
+
+        Socket socket;
+        BufferedReader in;
+        PrintWriter out;
+        ObjectOutputStream outToServer;
+        ObjectInputStream inFromServer;
+        String message_sortant;
+        String message_distant = "";
+
+        try {
+            //demande d'ouverture d'une connexion sur le serveur de jeu et le numero de port 60000
+            socket = new Socket(ipAddr, 60000);//args[0]
+            while (!message_distant.equalsIgnoreCase("disconnect")) {
+                //attente du message serveur pour debut d'authentification
+                inFromServer = new ObjectInputStream(socket.getInputStream());
+                message_distant = inFromServer.readUTF();
+                System.out.println("message :" + message_distant);
+
+                //reponse au serveur avec l'objet Joueur
+                outToServer = new ObjectOutputStream(socket.getOutputStream());
+                if (message_distant.equalsIgnoreCase(new String("Auth-att"))) {
+
+                    switch ()
+                    outToServer.writeObject(j);
+                    System.out.println("Authentification au prét du serveur (" + message_distant + ")");
+                } else {
+                    System.out.println("Le serveur à réfusé la connexion (" + message_distant + ")");
+                }
+                outToServer.flush();
+
+                //attente du message de validation d'authentification du serveur
+                inFromServer = new ObjectInputStream(socket.getInputStream());
+                message_distant = inFromServer.readUTF();
+                if (message_distant.equalsIgnoreCase(new String("Auth-ok"))) {
+                    System.out.println("Authentification réussie (" + message_distant + ")");
+                }
+
+            }
+
+            //fermeture de la connexion
+            socket.close();
+
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static Joueur joueurRegister(){
+
         String nom, prenom, license, ipAddr;
         boolean nomValid, prenomValid, licenseValid, ipAddrValid;
         Scanner sc = new Scanner(System.in);
-        
+
         //Demande de la license
         do {
             System.out.println("Entree votre clé de license :");
@@ -67,54 +118,9 @@ public class Client {
             }
             System.out.flush();
         } while (!ipAddrValid);
-        
+
         // Joueur a partager avec le serveur.
-        Joueur j = new Joueur(nom, prenom, license);
-
-        Socket socket;
-        BufferedReader in;
-        PrintWriter out;
-        ObjectOutputStream outToServer;
-        ObjectInputStream inFromServer;
-        String message_sortant;
-        String message_distant = "";
-
-        try {
-            //demande d'ouverture d'une connexion sur le serveur de jeu et le numero de port 60000
-            socket = new Socket(ipAddr, 60000);//args[0]
-            while (!message_distant.equalsIgnoreCase("fin")) {
-                //attente du message serveur pour debut d'authentification
-                inFromServer = new ObjectInputStream(socket.getInputStream());
-                message_distant = inFromServer.readUTF();
-                System.out.println("message :" + message_distant);
-
-                //reponse au serveur avec l'objet Joueur
-                outToServer = new ObjectOutputStream(socket.getOutputStream());
-                if (message_distant.equalsIgnoreCase(new String("Auth-att"))) {
-                    outToServer.writeObject(j);
-                    System.out.println("Authentification au prét du serveur (" + message_distant + ")");
-                } else {
-                    System.out.println("Le serveur à réfusé la connexion (" + message_distant + ")");
-                }
-                outToServer.flush();
-
-                //attente du message de validation d'authentification du serveur
-                inFromServer = new ObjectInputStream(socket.getInputStream());
-                message_distant = inFromServer.readUTF();
-                if (message_distant.equalsIgnoreCase(new String("Auth-ok"))) {
-                    System.out.println("Authentification réussie (" + message_distant + ")");
-                }
-
-            }
-
-            //fermeture de la connexion
-            socket.close();
-
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        return new Joueur(nom, prenom, license); 
     }
 
     /**
