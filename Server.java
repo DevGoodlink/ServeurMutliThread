@@ -212,7 +212,7 @@ class Server extends Thread{
                
             }else{
                 System.out.println("récupération du fichier players pour écriture");
-                fos=new FileOutputStream("C:\\players.txt");
+                fos=new FileOutputStream("players.txt");
                 oos= new ObjectOutputStream(fos);
                 //récupération du joueur en cours
                 System.out.println("récupération du joueur n licence ="+j.licence);
