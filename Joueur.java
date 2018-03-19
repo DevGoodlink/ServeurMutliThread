@@ -6,12 +6,15 @@ class Joueur implements Serializable{
     int score;
     int nbrJeux=0;
     boolean CONNECTED = false;
+    
     public Joueur(int licence) {
         this.licence=licence;
     }
+    
     public Joueur() {
-
+        super();
     }
+   
     public Joueur(String nom,String prenom,int licence){
         this.nom=nom;
         this.prenom=prenom;

@@ -139,7 +139,7 @@ class Server extends Thread{
                                 j.score+=1;
                                 resultatsInOut(false,j );//enregistrement des résultats sur le fichier
                             }
-                            resp=new Requete(j, "try","game-success", temps);
+                            resp=new Requete(j, "game-success","game-success", temps);
                         }
                             
                         else

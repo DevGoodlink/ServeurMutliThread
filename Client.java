@@ -12,23 +12,43 @@ import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Class client du jeux
+ */
 public class Client {
 
+    /**
+     * Fonction d'entrée de notre client
+     * @param args Argument d'execution
+     */
     public static void main(String[] args) {
 
+        /** @type Socket Socket de communication avec le serveur */
         Socket socket;
+
+        /** @type ObjectOutputStream flux de sortie pour les objets */
         ObjectOutputStream outToServer;
+
+        /** @type ObjectInputStream flux d'entré pour les object */
         ObjectInputStream inFromServer;
+
+        /** @type Requete requeque à envoyé et reçut */
         Requete ans, resp = null;
+
+        /** @type Scanner scanner de l'entrer clavier */
         Scanner sc = new Scanner(System.in);
+        
+        /** @type Joueur joueur du client */
         Joueur j;
 
+        /** @type String adresse ipV4 du serveur */
         String ipAddr = ipAddress();
 
         try {
             //demande d'ouverture d'une connexion sur le serveur de jeu et le numero de port 60000
             socket = new Socket(ipAddr, 60000);//args[0]
 
+            //Initialisation des flux
             inFromServer = new ObjectInputStream(socket.getInputStream());
             outToServer = new ObjectOutputStream(socket.getOutputStream());
 
@@ -44,6 +64,8 @@ public class Client {
                 System.out.println(resp.answer);
 
                 // Debut de l'authenfication
+                
+                /** @type boolean phase authentification fini */
                 boolean auth = false;
                 do {
                     ans = authentification();
@@ -89,6 +111,8 @@ public class Client {
                 // Fin de l'authentifcation
 
                 pause();
+
+                /** @type boolean souhaite rejouer */
                 boolean rejouer = false;
                 do{
                     System.out.println("Préparation du jeux");
@@ -107,7 +131,11 @@ public class Client {
                     if(resp.answer.equalsIgnoreCase("start-ok")){
 
                         // phase de jeux
+                        
+                        /** @type Boolean le joueur à gagné */
                         boolean win = false;
+
+                        /** @type String réponse du joueur */
                         String answer;
                         do {
                             System.out.flush();
@@ -125,9 +153,13 @@ public class Client {
                                     System.err.println(e.getMessage());
                                 }
 
+                                System.out.println(resp.intent);
                                 // Si je n'ai pas gagné
                                 if(resp.intent.equalsIgnoreCase("answer")){
+                                    
+                                    /** @type String[] tableau d'informations */
                                     String[] tokens = resp.answer.split(":");
+
                                     System.out.println(tokens[1] + " lettre(s) sont bonnes et " + tokens[0] + " lettres sont bien placée(s) en "+resp.time+"s");
                                 // Si j'ai gagnée
                                 }else if(resp.intent.equalsIgnoreCase("game-success")){
@@ -145,6 +177,7 @@ public class Client {
                 } else {
                     System.err.println("Erreur de communication avec le serveur (ER002)");
                 }
+                System.out.flush();
                         
                 // Demande de rejouer
                 System.out.println("Voulez vous rejouer ? ");
@@ -159,7 +192,6 @@ public class Client {
                 }
             } while(rejouer);
                 
-
             } else {
                System.err.println("Connexion au serveur echouée"); 
             }
@@ -174,10 +206,19 @@ public class Client {
         }
     }
 
+    /**
+     * Demande de l'adresse ipV4
+     * @return String adresse IPV4
+     */
     public static String ipAddress(){
 
+        /** @type String adresse Ipv4 entrez par le joueur */
         String ipAddr;
+
+        /** @type boolean l'adresse ip et valid */
         boolean ipAddrValid;
+
+        /** @type Scanner scan de l'entré clavier */
         Scanner sc = new Scanner(System.in);
 
         //Demande de l'adresse ip
@@ -199,7 +240,11 @@ public class Client {
      * @return Requete requete à envoyé au serveur pour l'authentification
      */
     public static Requete authentification(){
+
+        /** @type int choix fait par le joueur */
         int choix;
+
+        /** @type Scanner scan de l'entré clavier */
         Scanner sc = new Scanner(System.in);
 
         //Demande d'authetification
@@ -216,10 +261,14 @@ public class Client {
         } while (choix != 1 && choix != 2);
 
         if(choix == 1){
+            /** @type String license du joueur */
             int license = joueurLogin();
+
+            /** @type Joueur joueur avec la clef de license */
             Joueur j = new Joueur(license);
             return new Requete(j, "login", null, 0L);
         } else {
+            /** @type Joueur joueur avec les informations d'enregistrement */
             Joueur j = joueurRegister();
             return new Requete(j, "signup", null, 0L);
         }
@@ -230,8 +279,14 @@ public class Client {
      * @return int license du joueur
      */
     public static int joueurLogin(){
+
+        /** @type int license entré par le joueur */
         int license;
+
+        /** @type boolean si la license et valide */
         boolean licenseValid;
+
+        /** @type Scanner scan de l'entré clavier */
         Scanner sc = new Scanner(System.in);
         //Demande de la license
         do {
@@ -252,8 +307,13 @@ public class Client {
      */
     public static Joueur joueurRegister(){
 
+        /** @type String nom et prenom du joueur */
         String nom, prenom;
+
+        /** @type boolean si le nom et prenom sont valide */
         boolean nomValid, prenomValid;
+
+        /** @type Scanner scan de l'entré clavier */
         Scanner sc = new Scanner(System.in);
         
         //Demande du nom
@@ -289,6 +349,8 @@ public class Client {
      * @return boolean
      */
     public static boolean validateIpAddress(String ipAddress) {
+        
+        /** @type String partie entiere de l'adresse ip */
         String[] tokens = ipAddress.split("\\.");
 
         if (tokens.length != 4) {
@@ -327,6 +389,8 @@ public class Client {
      * @return boolean
      */
     public static void pause() {
+
+        /** @type Scanner scan de l'entré clavier */
         Scanner sc = new Scanner(System.in);
         System.out.println("Pour continuer appuyer sur une touche :");
         sc.nextLine();
