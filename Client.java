@@ -1,7 +1,4 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
+
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -35,99 +32,132 @@ public class Client {
             inFromServer = new ObjectInputStream(socket.getInputStream());
             outToServer = new ObjectOutputStream(socket.getOutputStream());
 
+            // Récupération de la connexion serveur
             try{
                resp = (Requete) inFromServer.readObject(); 
             } catch (Exception e){
                 System.err.println(e.getMessage());
             }
             
-
+            // Suis-je bien connecté
             if(resp.intent.equalsIgnoreCase("connected")){
                 System.out.println(resp.answer);
 
+                // Debut de l'authenfication
                 boolean auth = false;
                 do {
                     ans = authentification();
-                    System.out.println(ans.intent);
 
+                    // Envoie de l'authenfication
                     outToServer.writeObject(ans);
+
+                    // récupération de la réponse serveur
+                    try{
+                       resp = (Requete) inFromServer.readObject(); 
+                    } catch (Exception e){
+                        System.err.println(e.getMessage());
+                    }
+
+                    // Je voulait me connecter
+                    if(ans.intent.equalsIgnoreCase("login")){
+                        // Je suis connecter
+                        if(resp.answer.equalsIgnoreCase("login-success")){
+                            System.out.println("Authentification reussi");
+                            j = resp.getJoueur();
+                            auth = true;  
+                        // La connexion à échouer  
+                        }else if(resp.answer.equalsIgnoreCase("login-fail")){
+                            System.out.println("Authentification échoué");
+                        // Message inatendu du serveur
+                        } else {
+                            System.err.println("Erreur de communication avec le serveur");
+                        }
+
+                    // Je voulait m'inscrire    
+                    }else if(ans.intent.equalsIgnoreCase("signup")){
+                        // Inscription reussie
+                        if(resp.answer.equalsIgnoreCase("signup-success")){
+                            System.out.println("Inscription reussi");
+                            j = resp.getJoueur();
+                            auth = true;
+                        // Message inatendu du serveur
+                        } else {
+                            System.err.println("Erreur de communication avec le serveur (ER001)");
+                        }
+                    }
+                }while(!auth);
+                // Fin de l'authentifcation
+
+                pause();
+                boolean rejouer = false;
+                do{
+                    System.out.println("Préparation du jeux");
+
+                    // Demande au serveur de préparer un partie
+                    resp = new Requete(null, "start", null, 0L);
+                    outToServer.writeObject(resp);
 
                     try{
                        resp = (Requete) inFromServer.readObject(); 
                     } catch (Exception e){
                         System.err.println(e.getMessage());
                     }
-                    System.err.println(resp.answer);
-                    if(ans.intent.equalsIgnoreCase("login")){
-                        if(resp.answer.equalsIgnoreCase("login-success")){
-                            System.out.println("Authentification reussi");
-                            j = resp.getJoueur();
-                            auth = true;
-                        }else if(resp.answer.equalsIgnoreCase("login-fail")){
-                            System.out.println("Authentification échoué");
-                        } else {
-                            System.err.println("Erreur de communication avec le serveur");
-                        }
-                    }else if(ans.intent.equalsIgnoreCase("signup")){
-                        System.err.printf(resp.answer);
-                        if(resp.answer.equalsIgnoreCase("signup-success")){
-                            System.out.println("Inscription reussi");
-                            j = resp.getJoueur();
-                            auth = true;
-                        } else {
-                            System.err.println("Erreur de communication avec le serveur (ER001)");
-                        }
-                    }
-                }while(!auth);
 
-                pause();
+                    // Lance la partie 
+                    if(resp.answer.equalsIgnoreCase("start-ok")){
 
-                System.out.println("Préparation du jeux");
+                        // phase de jeux
+                        boolean win = false;
+                        String answer;
+                        do {
+                            System.out.flush();
+                            System.out.println("Proposer une suite de 5 lettre :");
+                            answer = sc.nextLine();
+                            if(answer.length() == 5){
 
-                resp = new Requete(null, "start", null, 0L);
-                outToServer.writeObject(resp);
+                                // Envoie un proposition
+                                resp = new Requete(null, "try", answer, 0L);
+                                outToServer.writeObject(resp);
 
-                try{
-                   resp = (Requete) inFromServer.readObject(); 
-                } catch (Exception e){
-                    System.err.println(e.getMessage());
-                }
+                                try{
+                                   resp = (Requete) inFromServer.readObject(); 
+                                } catch (Exception e){
+                                    System.err.println(e.getMessage());
+                                }
 
-                if(resp.answer.equalsIgnoreCase("start-ok")){
-
-                    boolean win = false;
-                    String answer;
-                    do {
-                        System.out.flush();
-                        System.out.println("Proposer une suite de 5 lettre :");
-                        answer = sc.nextLine();
-                        if(answer.length() == 5){
-                            resp = new Requete(null, "try", answer, 0L);
-                            outToServer.writeObject(resp);
-
-                            try{
-                               resp = (Requete) inFromServer.readObject(); 
-                            } catch (Exception e){
-                                System.err.println(e.getMessage());
-                            }
-
-                            if(resp.intent.equalsIgnoreCase("answer")){
-                                String[] tokens = resp.answer.split(":");
-                                System.out.println(tokens[1] + " lettre(s) sont bonnes et " + tokens[0] + " lettres sont bien placée(s) en "+resp.time+"s");
-                            }else if(resp.intent.equalsIgnoreCase("game-success")){
-                                System.out.println("Bravo tu à trouvé en " + resp.time);
-                                win = true;
+                                // Si je n'ai pas gagné
+                                if(resp.intent.equalsIgnoreCase("answer")){
+                                    String[] tokens = resp.answer.split(":");
+                                    System.out.println(tokens[1] + " lettre(s) sont bonnes et " + tokens[0] + " lettres sont bien placée(s) en "+resp.time+"s");
+                                // Si j'ai gagnée
+                                }else if(resp.intent.equalsIgnoreCase("game-success")){
+                                    System.out.println("Bravo tu à trouvé en " + resp.time);
+                                    win = true;
+                                }else {
+                                    System.err.println("Erreur de communication avec le serveur (ER003)");
+                                }
                             }else {
-                                System.err.println("Erreur de communication avec le serveur (ER003)");
+                                System.err.println("Format de la réponse incorrect");
                             }
-                        }else {
-                            System.err.println("Format de la réponse incorrect");
-                        }
-                        pause();
-                    }while(!win);
+                            pause();
+                        }while(!win);
+                        // Fin de partie 
                 } else {
                     System.err.println("Erreur de communication avec le serveur (ER002)");
                 }
+                        
+                // Demande de rejouer
+                System.out.println("Voulez vous rejouer ? ");
+                System.out.println("1. oui");
+                System.out.println("2. non");
+                System.out.print("Votre choix entre 1 et 2 : ");
+                int choix = sc.nextInt();
+                if(choix == 1){
+                    rejouer = true;
+                }else {
+                    rejouer = false;
+                }
+            } while(rejouer);
                 
 
             } else {
@@ -164,6 +194,10 @@ public class Client {
         return ipAddr;
     }
 
+    /**
+     * Procédure d'authntification du joueur
+     * @return Requete requete à envoyé au serveur pour l'authentification
+     */
     public static Requete authentification(){
         int choix;
         Scanner sc = new Scanner(System.in);
@@ -191,6 +225,10 @@ public class Client {
         }
     }
 
+    /**
+     * Connexion d'un joueur
+     * @return int license du joueur
+     */
     public static int joueurLogin(){
         int license;
         boolean licenseValid;
@@ -208,6 +246,10 @@ public class Client {
         return license;
     }
 
+    /**
+     * Inscription d'un joueur
+     * @return Joueur information du joueur à inscrire
+     */
     public static Joueur joueurRegister(){
 
         String nom, prenom;
