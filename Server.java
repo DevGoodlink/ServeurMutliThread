@@ -181,6 +181,7 @@ class Server extends Thread{
         
 
         try{
+            File f = new File("players.txt");
             if(f.exists() && !f.isDirectory()) { 
                 fis=new FileInputStream("players.txt");
                 ois= new ObjectInputStream(fis);
