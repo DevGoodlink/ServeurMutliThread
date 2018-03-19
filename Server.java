@@ -98,7 +98,7 @@ class Server extends Thread{
                             resp=new Requete(j,null ,"login-fail" , temps);
                         }
                         else
-                        {
+                        {//si le login passe on enregistre la référence du joueur authentifié  
                             j.nbrJeux+=1;
                             resp=new Requete(j,null ,"login-success" , temps);
                             this.j=j;
@@ -112,7 +112,6 @@ class Server extends Thread{
                         }else{
                             resp=new Requete(null,null,"signup-fail", temps);
                         }
-                        
                     }
                     if(req.intent.equalsIgnoreCase("start")){
                         this.mot=genererMot();
@@ -141,16 +140,12 @@ class Server extends Thread{
                             }
                             resp=new Requete(j, "game-success","game-success", temps);
                         }
-                            
                         else
                             resp=new Requete(null, "answer",""+res[0]+":"+res[1], temps);
                     }
                     if(req.intent.equalsIgnoreCase("abondon")){
                         this.j.score-=5;
                     }
-                   /* else
-                        resp=new Requete(null, null, "ambigus or unknown", temps);*/
-
                     toClient.writeObject(resp);
                     debut = System.currentTimeMillis();
                 }
@@ -294,6 +289,10 @@ class Server extends Thread{
             return null;
         }
     }
+    /**
+     * Méthode du serveur pour générer une conbinaison ordonnée de 5 lettres
+     * @return String chaine de taille 5
+     */
     private static synchronized String genererMot() {
 		Set<String> chaine = Collections.synchronizedSet(new HashSet<String>());
 		int aleatoire = 0;
@@ -308,7 +307,13 @@ class Server extends Thread{
 				mot += lettre[aleatoire];
 		}
 		return mot;
-	}
+    }
+    /**
+     * Methode verifier la proposition du joueur au mot secret
+     * @param mot String 
+     * @param proposition String
+     * @return int[] tableau  de taille 2 {nombre de lettres correctes,nombre de lettre existantes}
+     */
 	private static synchronized int[] verifier(String mot, String proposition) {
         System.out.println("mot = "+mot+" prop = "+proposition);
 		int[] resultat = { 0, 0 };
