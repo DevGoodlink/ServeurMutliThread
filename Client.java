@@ -57,18 +57,18 @@ public class Client {
                         System.err.println(e.getMessage());
                     }
 
-                    if(ans.intent.equalsIgnoreCase("auth")){
-                        if(resp.answer.equalsIgnoreCase("auth-success")){
+                    if(ans.intent.equalsIgnoreCase("login")){
+                        if(resp.answer.equalsIgnoreCase("login-success")){
                             System.out.println("Authentification reussi");
                             j = resp.getJoueur();
                             auth = true;
-                        }else if(resp.answer.equalsIgnoreCase("auth-fail")){
+                        }else if(resp.answer.equalsIgnoreCase("login-fail")){
                             System.out.println("Authentification échoué");
                         } else {
                             System.err.println("Erreur de communication avec le serveur");
                         }
-                    }else if(ans.intent.equalsIgnoreCase("register")){
-                        if(resp.answer.equalsIgnoreCase("register-success")){
+                    }else if(ans.intent.equalsIgnoreCase("signup")){
+                        if(resp.answer.equalsIgnoreCase("signup-success")){
                             System.out.println("Inscription reussi");
                             j = resp.getJoueur();
                             auth = true;
@@ -182,10 +182,10 @@ public class Client {
         if(choix == 1){
             int license = joueurLogin();
             Joueur j = new Joueur(license);
-            return new Requete(j, "auth", null, 0L);
+            return new Requete(j, "login", null, 0L);
         } else {
             Joueur j = joueurRegister();
-            return new Requete(j, "register", null, 0L);
+            return new Requete(j, "signup", null, 0L);
         }
     }
 
@@ -197,11 +197,11 @@ public class Client {
         do {
             System.out.println("Entree votre clé de license :");
             license = sc.nextInt();
-            if (license >= 000 && license <= 999) {
+            if (license >= 0001 && license <10000) {
                 System.err.println("Format de la license invalid");
             }
             System.out.flush();
-        } while (license >= 000 && license <= 999);
+        } while (license >= 0001 && license <10000);
 
         return license;
     }
