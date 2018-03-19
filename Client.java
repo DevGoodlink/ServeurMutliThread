@@ -48,6 +48,7 @@ public class Client {
                 boolean auth = false;
                 do {
                     ans = authentification();
+                    System.out.println(ans.intent);
 
                     outToServer.writeObject(ans);
 
@@ -68,6 +69,7 @@ public class Client {
                             System.err.println("Erreur de communication avec le serveur");
                         }
                     }else if(ans.intent.equalsIgnoreCase("signup")){
+                        System.err.printf(resp.answer);
                         if(resp.answer.equalsIgnoreCase("signup-success")){
                             System.out.println("Inscription reussi");
                             j = resp.getJoueur();

@@ -20,6 +20,10 @@ class Joueur implements Serializable{
         this.prenom=prenom;
         this.licence=licence;
     }
+
+    public int getScore(){
+        return this.score;
+    }
    
     @Override
     public String toString() {
