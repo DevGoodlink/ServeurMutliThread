@@ -218,7 +218,7 @@ class Server extends Thread{
             fos.close();
         }
         if(l){//login
-            System.out.println("Login launched for j = "+j.nom);
+            System.out.println("Login launched for j = "+j.licence);
             Joueur foundJoueur=null;
             foundJoueur = lst.stream().filter(e->e.equals(j)).findFirst().get();
             if(foundJoueur==null){

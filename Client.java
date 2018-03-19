@@ -93,7 +93,7 @@ public class Client {
                     System.err.println(e.getMessage());
                 }
 
-                if(ans.answer.equalsIgnoreCase("start-ok")){
+                if(resp.answer.equalsIgnoreCase("start-ok")){
 
                     boolean win = false;
                     String answer;
@@ -111,10 +111,10 @@ public class Client {
                                 System.err.println(e.getMessage());
                             }
 
-                            if(ans.intent.equalsIgnoreCase("answer")){
+                            if(resp.intent.equalsIgnoreCase("answer")){
                                 String[] tokens = ans.answer.split(":");
                                 System.out.println(tokens[0] + " lettre(s) sont bonnes et " + tokens[1] + " lettres sont bien placée(s)." );
-                            }else if(ans.answer.equalsIgnoreCase("game-success")){
+                            }else if(resp.answer.equalsIgnoreCase("game-success")){
                                 System.out.println("Bravo tu à trouvée en " + ans.time);
                                 win = true;
                             }else {
@@ -199,11 +199,11 @@ public class Client {
         do {
             System.out.println("Entree votre clé de license :");
             license = sc.nextInt();
-            if (license >= 0001 && license <10000) {
+            if (license <= 1 && license >= 10000) {
                 System.err.println("Format de la license invalid");
             }
             System.out.flush();
-        } while (license >= 0001 && license <10000);
+        } while (license < 0001 && license >= 10000);
 
         return license;
     }
