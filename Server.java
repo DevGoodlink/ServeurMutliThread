@@ -62,7 +62,7 @@ class Server extends Thread{
                 ObjectOutputStream toClient = new ObjectOutputStream(socket.getOutputStream());
                 ObjectInputStream fromClient = new ObjectInputStream(socket.getInputStream());
                 String modle = "Bievenue, vous êtes connecté au serveur de jeux";
-                resp = new Requete(null,"first","connected :\n"+ modle,0L); //afficher la liste des score à la connexion
+                resp = new Requete(null,"connected","connected :\n"+ modle,0L); //afficher la liste des score à la connexion
                 toClient.writeObject(resp);
                 Thread.sleep(5000);
                 long debut = System.currentTimeMillis(), fin = System.currentTimeMillis();
@@ -103,9 +103,9 @@ class Server extends Thread{
                     if(req.intent.equalsIgnoreCase("try")){
                         int[] res = verifier(mot, req.intent);
                         if(res[0]==5 && res[1]==5)
-                            resp=new Requete(null, null,"game-success", temps);
+                            resp=new Requete(j, null,"game-success", temps);
                         else
-                            resp=new Requete(null, null,""+res[0]+":"+res[1], temps);
+                            resp=new Requete(null, "answer",""+res[0]+":"+res[1], temps);
                         //Enregistrement de score
                         if (tempsJeu<60)j.score+=10;
                         else if(tempsJeu>60 && tempsJeu<60*3)j.score+=5;
