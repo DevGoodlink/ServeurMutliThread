@@ -3,6 +3,10 @@ import java.net.*;
 import java.util.*;
 import java.lang.Exception;
 import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 class Server extends Thread{
     int nbClient=0;
@@ -27,7 +31,12 @@ class Server extends Thread{
 		new Server().start();
         System.out.println("     Lancement du serveur par le main   ");
     }
-
+/**
+ * La classe Game représente un jeu qui se lance à chaque connexion d'un client
+ * Chaque jeu a sa propre socket pour communiquer avec le joueur
+ * Un objet joueur est associé à  chaque jeu
+ * 
+ */
     class Game extends Thread {
         private Socket socket;
         Joueur j;
@@ -47,33 +56,44 @@ class Server extends Thread{
             Requete req;
             Requete resp;
             System.out.println("   lancement du jeu pour le client n° = "+nbClient);
-            try {
+            try 
+            {
                 String ipAddress = socket.getRemoteSocketAddress().toString();
-                //PrintWriter toClient = new PrintWriter(socket.getOutputStream(),true);
-                //toClient.write("Hello Client "+ cltNumber);
                 ObjectOutputStream toClient = new ObjectOutputStream(socket.getOutputStream());
-                //toClient.writeObject(new Joueur("Nice try"));
                 ObjectInputStream fromClient = new ObjectInputStream(socket.getInputStream());
-                String modle = "Bievenue, vous êtes connecté au serveur de mastermind réalisé par sbai et perez";
-                //Ajouter la liste des score à la connexion
-                toClient.writeObject(new Requete(null,"connected","connected :\n"+ modle, 0L));
+                String modle = "Bievenue, vous êtes connecté au serveur de jeux";
+                resp = new Requete(null,"first","connected :\n"+ modle,0L); //afficher la liste des score à la connexion
+                toClient.writeObject(resp);
+                Thread.sleep(5000);
                 long debut = System.currentTimeMillis(), fin = System.currentTimeMillis();
                 long temps = fin - debut;
-                
-                while (( req = (Requete) fromClient.readObject()) != null) {
+                while (( req = (Requete) fromClient.readObject()) != null) 
+                {
                     fin = System.currentTimeMillis();
                     temps = (fin - debut) / 1000L;
                     tempsJeu+=temps;
-                    if (req.intent.equalsIgnoreCase("auth")){
+                    if (req.intent.equalsIgnoreCase("login")){
                         //récupération de la licence nécessaire à l'authentification
                         Joueur j=LoginAndRegister(true,req.getJoueur());
-                        resp=new Requete(j,null ,j.licence==0?"auth-success":"auth-fail" , temps);
-                        this.j=j;
+                        if(j==null){
+                            resp=new Requete(j,null ,"login-fail" , temps);
+                        }
+                        else
+                        {
+                            j.nbrJeux+=1;
+                            resp=new Requete(j,null ,"login-success" , temps);
+                            this.j=j;
+                        }
                     }
-                    if (req.intent.equalsIgnoreCase("register")){
+                    if (req.intent.equalsIgnoreCase("signup")){
                         Joueur j=LoginAndRegister(false,req.getJoueur());
-                        resp=new Requete(j,null,"register-success", temps);
-                        this.j=j;
+                        if(j!=null){
+                            resp=new Requete(j,null,"signup-success", temps);
+                            this.j=j;
+                        }else{
+                            resp=new Requete(null,null,"signup-fail", temps);
+                        }
+                        
                     }
                     if(req.intent.equalsIgnoreCase("start")){
                         this.mot=genererMot();
@@ -81,11 +101,11 @@ class Server extends Thread{
                         resp=new Requete(null, null, "start-ok", temps);
                     }
                     if(req.intent.equalsIgnoreCase("try")){
-                        int[] res = verifier(mot, req.answer);
+                        int[] res = verifier(mot, req.intent);
                         if(res[0]==5 && res[1]==5)
                             resp=new Requete(null, null,"game-success", temps);
                         else
-                            resp=new Requete(null, "answer",""+res[0]+":"+res[1], temps);
+                            resp=new Requete(null, null,""+res[0]+":"+res[1], temps);
                         //Enregistrement de score
                         if (tempsJeu<60)j.score+=10;
                         else if(tempsJeu>60 && tempsJeu<60*3)j.score+=5;
@@ -103,11 +123,11 @@ class Server extends Thread{
                     toClient.writeObject(resp);
                     debut = System.currentTimeMillis();
                 }
-                  
                   socket.close();
 
             } catch (Exception e) {
                 System.err.println(e.getMessage());
+                --nbClient;
             }
             
         }
@@ -116,68 +136,115 @@ class Server extends Thread{
     
     
     /**
-     * Permet de récupérer l'historique des résultats des joueurs ou d'inscrire les nouveaux résultats d'un joueur;
+     * Permet de récupérer l'historique des résultats des joueurs ou 
+     * d'inscrire les nouveaux résultats d'un joueur;
+     * @param lectureEcriture true pour lecture des résultat et false pour l'écriture d'un nouveau score
+     * @param j Joueur null si lecture de résultat / joueur avec les nouveaux résultats à enregistrer
+     * 
      */
     public static synchronized String resultatsInOut(boolean lectureEcriture,Joueur j){
         StringBuilder chaine=new StringBuilder("Résultats : \n");
-        FileOutputStream fos;
-        ObjectOutputStream oos;
+        FileOutputStream fos;ObjectOutputStream oos;
+        FileInputStream fis;ObjectInputStream ois;
         List<Joueur> playerLst = new ArrayList();
+        
+
         try{
-            fos= new FileOutputStream("players");
-            oos= new ObjectInputStream(fos);
-            playerLst = (List<Joueur>) ois.readObject();
-            //traitement sur l'objet user list en lecture
-            if(lectureEcriture){
+            //remplir le fichier par un élément de test
+            fis=new FileInputStream("players.txt");
+            ois= new ObjectInputStream(fis);
+            playerLst=(List<Joueur>)ois.readObject();
+            ois.close();
+            fis.close();
+            if(playerLst.size()==0){
+                fos=new FileOutputStream("players.txt");
+                oos= new ObjectOutputStream(fos);
+                playerLst.add(new Joueur("test","test",1111));
+                oos.writeObject(playerLst);
+                oos.close();
+                fos.close();
+            }
+            if(lectureEcriture){//si je ve récupérer les résultats
+                //Tri des objets joueur selon le score par ordre décroissant
+                playerLst = playerLst.stream().sorted(
+                    Comparator.comparing(Joueur::getScore).reversed()
+                    ).collect(Collectors.toList());
+                //écriture de la liste des scores de tous les joueurs
                 playerLst.stream().forEach(e->chaine.append(e+"\n"));
-            }else{
+                return chaine.toString();
+            }else{//récupération du fichier players pour écriture
+                fos=new FileOutputStream("C:\\players.txt");
+                oos= new ObjectOutputStream(fos);
+                //récupération du joueur en cours
                 for(int i=0;i<playerLst.size();++i){
                     Joueur player =playerLst.get(i);
                     if(player.licence==j.licence){
-                        playerLst.remove(i);
-                    }
+                        //je le supprime de la liste
+                        playerLst.set(i,j);}
                 }
-                playerLst.add(j);
+                
+                oos.writeObject(playerLst);
+                oos.close();
+                fos.flush();
             }
-            //oos.writeObject(userList);
-            oos.close();
-            fos.close();
-          }catch(Exception ioe){
-               ioe.printStackTrace();
-           }
+            return null;//dans le cas de l'écriture
+          }catch(Exception ioe)
+          {ioe.printStackTrace();return null;}
     }
     /**
      * fonction qui permet de faire le login et l'enregistrement
      * les deux pour éviter un accés simultané au fichier par plusieurs thread.
+     * @param l true pour login ou false pour Sign up
+     * @param j Objet joueur
+     * @return Joureur
      */
-    public static synchronized Joueur LoginAndRegister(boolean l,Joueur j) {
-        System.out.println("Login launched");
+    public static synchronized Joueur LoginAndRegister(boolean l,Joueur j)throws Exception {
+        
         List<Joueur> lst = new ArrayList<>();
-        lst.add(new Joueur("a","b",111));
-        lst.add(new Joueur("c","d",222));
-        lst.add(new Joueur("e","f",333));
-        lst.add(new Joueur("g","h",444));
-        Joueur foundJoueur;
+        //ouverture du fichier players.txt pour lecture
+        File f = new File("players.txt");
+        if(f.exists() && !f.isDirectory()) { 
+            FileInputStream fis=new FileInputStream("players.txt");
+            ObjectInputStream ois= new ObjectInputStream(fis);
+            lst=(List<Joueur>)ois.readObject();
+            ois.close();
+            fis.close();
+        }else{
+            //création du fichier
+            FileOutputStream fos=new FileOutputStream("players.txt");
+            ObjectOutputStream oos= new ObjectOutputStream(fos);
+            oos.writeObject(lst);
+            oos.close();
+            fos.close();
+        }
         if(l){//login
+            System.out.println("Login launched for j = "+j.nom);
+            Joueur foundJoueur=null;
             foundJoueur = lst.stream().filter(e->e.equals(j)).findFirst().get();
-            //return oj;
-            if(foundJoueur == null){
+            if(foundJoueur==null){
                 System.out.println("[fail authentification]");
-                return j;
+                return null;//retourn null
             }
             System.out.println("[success authentification]");               
-            return foundJoueur;
-        }else{//enregistrement
+            return foundJoueur;//retourn l'objet trouvé dans la base authentification avec succés
+        }else{
+            System.out.println("Signup launched for j = "+j.nom);
+            //enregistrement
             //test si le joueur est présent
-            oj = lst.stream().filter(e->e.nom.equalsIgnoreCase(j.nom) && e.prenom.equalsIgnoreCase(j.prenom)).findFirst().isPresent();
-            if(!oj){//le cas ou il n'est pas présent
-                j.licence= new Random().nextInt(9999);
+            boolean joueurPresent = lst.stream().filter(e->e.nom.equalsIgnoreCase(j.nom) && e.prenom.equalsIgnoreCase(j.prenom)).findFirst().isPresent();
+            if(!joueurPresent){//le cas ou il n'est pas présent on lui attribue un numéro de licence aléatoire
+                j.licence= new Random().nextInt(10000);
                 lst.add(j);
-                System.out.println("[joueur créé]");
+                FileOutputStream fos=new FileOutputStream("players.txt");
+                ObjectOutputStream oos= new ObjectOutputStream(fos);
+                oos.writeObject(lst);
+                oos.close();
+                fos.close();
+                System.out.println("[joueur créé licence = "+j.licence+"]");
                 return j;
             }else{
                 System.out.println("[Joueur existant]");
-                return j;
+                return null;
             }
         }              
     }
