@@ -178,7 +178,7 @@ class Server extends Thread{
         FileOutputStream fos;ObjectOutputStream oos;
         FileInputStream fis;ObjectInputStream ois;
         List<Joueur> playerLst = new ArrayList();
-        
+        System.out.println("enregistrement des résultats");
 
         try{
             File f = new File("players.txt");
@@ -188,8 +188,10 @@ class Server extends Thread{
                 playerLst=(List<Joueur>)ois.readObject();
                 ois.close();
                 fis.close();
+                System.out.println("liste des données chargée en mémoire");
             }
             if(playerLst.size()==0){
+                System.out.println("taille de la liste ==0");
                 fos=new FileOutputStream("players.txt");
                 oos= new ObjectOutputStream(fos);
                 playerLst.add(new Joueur("test","test",1111));
@@ -199,16 +201,22 @@ class Server extends Thread{
             }
             if(lectureEcriture){//si je ve récupérer les résultats
                 //Tri des objets joueur selon le score par ordre décroissant
+                System.out.println("Tri des résultats sur la liste");
                 playerLst = playerLst.stream().sorted(
                     Comparator.comparing(Joueur::getScore).reversed()
                     ).collect(Collectors.toList());
                 //écriture de la liste des scores de tous les joueurs
                 playerLst.stream().forEach(e->chaine.append(e+"\n"));
+                System.out.println("Resultats envoyé au client");
                 return chaine.toString();
-            }else{//récupération du fichier players pour écriture
+               
+            }else{
+                System.out.println("récupération du fichier players pour écriture");
                 fos=new FileOutputStream("C:\\players.txt");
                 oos= new ObjectOutputStream(fos);
                 //récupération du joueur en cours
+                System.out.println("récupération du joueur n licence ="+j.licence);
+
                 for(int i=0;i<playerLst.size();++i){
                     Joueur player =playerLst.get(i);
                     if(player.licence==j.licence){
@@ -231,55 +239,60 @@ class Server extends Thread{
      * @param j Objet joueur
      * @return Joureur
      */
-    public static synchronized Joueur LoginAndRegister(boolean l,Joueur j)throws Exception {
+    public static synchronized Joueur LoginAndRegister(boolean l,Joueur j){
         
         List<Joueur> lst = new ArrayList<>();
-        //ouverture du fichier players.txt pour lecture
-        File f = new File("players.txt");
-        if(f.exists() && !f.isDirectory()) { 
-            FileInputStream fis=new FileInputStream("players.txt");
-            ObjectInputStream ois= new ObjectInputStream(fis);
-            lst=(List<Joueur>)ois.readObject();
-            ois.close();
-            fis.close();
-        }else{
-            //création du fichier
-            FileOutputStream fos=new FileOutputStream("players.txt");
-            ObjectOutputStream oos= new ObjectOutputStream(fos);
-            oos.writeObject(lst);
-            oos.close();
-            fos.close();
-        }
-        if(l){//login
-            System.out.println("Login launched for licence = "+j.licence);
-            Joueur foundJoueur=null;
-            foundJoueur = lst.stream().filter(e->e.equals(j)).findFirst().get();
-            if(foundJoueur==null){
-                System.out.println("[fail authentification]");
-                return null;//retourn null
-            }
-            System.out.println("[success authentification]");               
-            return foundJoueur;//retourn l'objet trouvé dans la base authentification avec succés
-        }else{
-            System.out.println("Signup launched for j = "+j.nom);
-            //enregistrement
-            //test si le joueur est présent
-            boolean joueurPresent = lst.stream().filter(e->e.nom.equalsIgnoreCase(j.nom) && e.prenom.equalsIgnoreCase(j.prenom)).findFirst().isPresent();
-            if(!joueurPresent){//le cas ou il n'est pas présent on lui attribue un numéro de licence aléatoire
-                j.licence= new Random().nextInt(10000);
-                lst.add(j);
+        try {
+            //ouverture du fichier players.txt pour lecture
+            File f = new File("players.txt");
+            if(f.exists() && !f.isDirectory()) { 
+                FileInputStream fis=new FileInputStream("players.txt");
+                ObjectInputStream ois= new ObjectInputStream(fis);
+                lst=(List<Joueur>)ois.readObject();
+                ois.close();
+                fis.close();
+            }else{
+                //création du fichier
                 FileOutputStream fos=new FileOutputStream("players.txt");
                 ObjectOutputStream oos= new ObjectOutputStream(fos);
                 oos.writeObject(lst);
                 oos.close();
                 fos.close();
-                System.out.println("[joueur créé licence = "+j.licence+"]");
-                return j;
-            }else{
-                System.out.println("[Joueur existant]");
-                return null;
             }
-        }              
+            if(l){//login
+                System.out.println("Login launched for licence = "+j.licence);
+                Joueur foundJoueur=null;
+                foundJoueur = lst.stream().filter(e->e.equals(j)).findFirst().get();
+            if(foundJoueur==null){
+                    System.out.println("[fail authentification]");
+                    return null;//retourn null
+                }
+                System.out.println("[success authentification]");               
+                return foundJoueur;//retourn l'objet trouvé dans la base authentification avec succés
+            }else{
+                System.out.println("Signup launched for j = "+j.nom);
+                //enregistrement
+                //test si le joueur est présent
+                boolean joueurPresent = lst.stream().filter(e->e.nom.equalsIgnoreCase(j.nom) && e.prenom.equalsIgnoreCase(j.prenom)).findFirst().isPresent();
+                if(!joueurPresent){//le cas ou il n'est pas présent on lui attribue un numéro de licence aléatoire
+                    j.licence= new Random().nextInt(10000);
+                    lst.add(j);
+                    FileOutputStream fos=new FileOutputStream("players.txt");
+                    ObjectOutputStream oos= new ObjectOutputStream(fos);
+                    oos.writeObject(lst);
+                    oos.close();
+                    fos.close();
+                    System.out.println("[joueur créé licence = "+j.licence+"]");
+                    return j;
+                }else{
+                    System.out.println("[Joueur existant]");
+                    return null;
+                }
+            }   
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
     private static synchronized String genererMot() {
 		Set<String> chaine = Collections.synchronizedSet(new HashSet<String>());
