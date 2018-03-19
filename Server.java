@@ -7,16 +7,23 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-
+/**
+ * Classe server c'est un thread avec deux propriétés nbClient correspondant au nombre de client
+ * qui se connecte sur le serveur, à chaque connexion on lance un thread game
+ * le serveur ne peux accueillir plus de 10 clients à la fois soit 10 threads
+ * à la déconnexion d'un client la propriété nbClient est décrémenté de 1
+ */
 class Server extends Thread{
     int nbClient=0;
     boolean game=true;
-
+/**
+ * la méthode run pour gérer l'arrivée des clients
+ */
     public void run() {
         System.err.println("Lancement du run serveur    ");
         try {
 			ServerSocket ss = new ServerSocket(60000);
-			while (nbClient < 10 && game) {
+			while (nbClient <= 10 && game) {
 				Socket s = ss.accept();
                 ++nbClient;
                 new Game(s,nbClient).start();
@@ -27,6 +34,9 @@ class Server extends Thread{
 			
         }
     }
+    /**
+     * Main du serveur pour lancer le serveur
+     */
     public static void main(String[] args) {
 		new Server().start();
         System.out.println("     Lancement du serveur par le main   ");
@@ -44,14 +54,20 @@ class Server extends Thread{
         long tempsJeu;
         String mot;
 		boolean game = true;
-        //Joueur j;
-        
+        /**
+         * Constructeur de la classe game prend un socket et un numéro de client au lancement.
+         * initialise le temps de jeu à 0
+         * 
+         * */        
         public Game(Socket s,int nbClient){
             socket =s;
             tempsJeu=0L;
             cltNumber=nbClient;
         }
-
+/**
+ * Méthode run pour lancer le jeu elle utilise une requete d'envoie et une requete à la reception
+ * pour échanger avec le client
+ */
         public void run(){
             Requete req;
             Requete resp;
@@ -69,9 +85,12 @@ class Server extends Thread{
                 long temps = fin - debut;
                 while (( req = (Requete) fromClient.readObject()) != null) 
                 {
+                    //notre compteur temps s'arrête à la reception d'une requête client
                     fin = System.currentTimeMillis();
                     temps = (fin - debut) / 1000L;
+                    //on incrémente le temps global du jeu pour le joueur qui sera base de calcul du score
                     tempsJeu+=temps;
+                    //lorsque le client sollécite un login
                     if (req.intent.equalsIgnoreCase("login")){
                         //récupération de la licence nécessaire à l'authentification
                         Joueur j=LoginAndRegister(true,req.getJoueur());
