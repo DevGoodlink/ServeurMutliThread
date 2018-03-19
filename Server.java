@@ -56,7 +56,7 @@ class Server extends Thread{
                 ObjectInputStream fromClient = new ObjectInputStream(socket.getInputStream());
                 String modle = "Bievenue, vous êtes connecté au serveur de mastermind réalisé par sbai et perez";
                 //Ajouter la liste des score à la connexion
-                toClient.writeObject(new Requete(null,null,"connected :\n"+ modle));
+                toClient.writeObject(new Requete(null,"connected","connected :\n"+ modle, 0L));
                 long debut = System.currentTimeMillis(), fin = System.currentTimeMillis();
                 long temps = fin - debut;
                 
@@ -67,7 +67,7 @@ class Server extends Thread{
                     if (req.intent.equalsIgnoreCase("auth")){
                         //récupération de la licence nécessaire à l'authentification
                         Joueur j=LoginAndRegister(true,req.getJoueur());
-                        resp=new Requete(j,null ,j.licence=0?"auth-success":"auth-fail" , temps);
+                        resp=new Requete(j,null ,j.licence==0?"auth-success":"auth-fail" , temps);
                         this.j=j;
                     }
                     if (req.intent.equalsIgnoreCase("register")){
@@ -78,14 +78,14 @@ class Server extends Thread{
                     if(req.intent.equalsIgnoreCase("start")){
                         this.mot=genererMot();
                         temps=0;
-                        resp=new Requete(null, null, "start-ok", time);
+                        resp=new Requete(null, null, "start-ok", temps);
                     }
                     if(req.intent.equalsIgnoreCase("try")){
-                        int[] res = verifier(mot, req.intent);
+                        int[] res = verifier(mot, req.answer);
                         if(res[0]==5 && res[1]==5)
-                            resp=new Requete(null, null,"game-success", time);
+                            resp=new Requete(null, null,"game-success", temps);
                         else
-                            resp=new Requete(null, null,""+res[0]+":"+res[1], time);
+                            resp=new Requete(null, "answer",""+res[0]+":"+res[1], temps);
                         //Enregistrement de score
                         if (tempsJeu<60)j.score+=10;
                         else if(tempsJeu>60 && tempsJeu<60*3)j.score+=5;
@@ -98,7 +98,7 @@ class Server extends Thread{
                         this.j.score-=5;
                     }
                     else
-                        resp=new Requete(null, null, "ambigus or unknown", time);
+                        resp=new Requete(null, null, "ambigus or unknown", temps);
 
                     toClient.writeObject(resp);
                     debut = System.currentTimeMillis();
@@ -125,7 +125,7 @@ class Server extends Thread{
         List<Joueur> playerLst = new ArrayList();
         try{
             fos= new FileOutputStream("players");
-            oos= new ObjectOutputStream(fos);
+            oos= new ObjectInputStream(fos);
             playerLst = (List<Joueur>) ois.readObject();
             //traitement sur l'objet user list en lecture
             if(lectureEcriture){
@@ -137,7 +137,7 @@ class Server extends Thread{
                         playerLst.remove(i);
                     }
                 }
-                playerLst.add(j)
+                playerLst.add(j);
             }
             //oos.writeObject(userList);
             oos.close();
@@ -153,15 +153,15 @@ class Server extends Thread{
     public static synchronized Joueur LoginAndRegister(boolean l,Joueur j) {
         System.out.println("Login launched");
         List<Joueur> lst = new ArrayList<>();
-        lst.add(new Joueur("a","b","111"));
-        lst.add(new Joueur("c","d","222"));
-        lst.add(new Joueur("e","f","333"));
-        lst.add(new Joueur("g","h","444"));
+        lst.add(new Joueur("a","b",111));
+        lst.add(new Joueur("c","d",222));
+        lst.add(new Joueur("e","f",333));
+        lst.add(new Joueur("g","h",444));
         Joueur foundJoueur;
         if(l){//login
             foundJoueur = lst.stream().filter(e->e.equals(j)).findFirst().get();
             //return oj;
-            if(!oj){
+            if(foundJoueur == null){
                 System.out.println("[fail authentification]");
                 return j;
             }
@@ -169,7 +169,7 @@ class Server extends Thread{
             return foundJoueur;
         }else{//enregistrement
             //test si le joueur est présent
-            oj = lst.stream().filter(e->e.nom.equalsIgnoreCase(oj.nom) && e.prenom.equalsIgnoreCase(oj.prenom)).findFirst().isPresent();
+            oj = lst.stream().filter(e->e.nom.equalsIgnoreCase(j.nom) && e.prenom.equalsIgnoreCase(j.prenom)).findFirst().isPresent();
             if(!oj){//le cas ou il n'est pas présent
                 j.licence= new Random().nextInt(9999);
                 lst.add(j);

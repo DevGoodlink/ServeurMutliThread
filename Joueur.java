@@ -7,7 +7,14 @@ class Joueur implements Serializable{
     int nbrJeux=0;
     
     public Joueur() {
+        super();
     }
+
+    public Joueur(int license) {
+        super();
+        this.licence = license;
+    }
+
     public Joueur(String nom,String prenom,int licence){
         this.nom=nom;
         this.prenom=prenom;
@@ -23,6 +30,6 @@ class Joueur implements Serializable{
     public boolean equals(Object obj) {
         if(! (obj instanceof Joueur)) return false;
         Joueur j = (Joueur)obj;
-        return this.licence==obj.licence;
+        return this.licence==j.licence;
     }
 }

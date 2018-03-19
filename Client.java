@@ -20,72 +20,118 @@ public class Client {
     public static void main(String[] args) {
 
         Socket socket;
-        BufferedReader in;
-        PrintWriter out;
         ObjectOutputStream outToServer;
         ObjectInputStream inFromServer;
-        String message_sortant;
-        String message_distant = "";
-        boolean auth = false;
+        Requete ans, resp = null;
+        Scanner sc = new Scanner(System.in);
+        Joueur j;
 
-        String ipAddre = ipAddress();
+        String ipAddr = ipAddress();
 
         try {
             //demande d'ouverture d'une connexion sur le serveur de jeu et le numero de port 60000
             socket = new Socket(ipAddr, 60000);//args[0]
-            while (!message_distant.equalsIgnoreCase("fin")) {
-                //attente du message serveur pour debut d'authentification
-                inFromServer = new ObjectInputStream(socket.getInputStream());
-                message_distant = inFromServer.readUTF();
-                System.out.println("message :" + message_distant);
 
-                if (message_distant.equalsIgnoreCase(new String("Auth-att"))) {
-                    String choice = menuAuth();
+            inFromServer = new ObjectInputStream(socket.getInputStream());
+            outToServer = new ObjectOutputStream(socket.getOutputStream());
 
-                    if(choice.equalsIgnoreCase('connexion')){
+            try{
+               resp = (Requete) inFromServer.readObject(); 
+            } catch (Exception e){
+                System.err.println(e.getMessage());
+            }
+            
 
-                    }else if(choice.equalsIgnoreCase('register')){
+            if(resp.intent.equalsIgnoreCase("connected")){
+                System.out.println(resp.answer);
 
+                boolean auth = false;
+                do {
+                    ans = authentification();
+
+                    outToServer.writeObject(ans);
+
+                    try{
+                       resp = (Requete) inFromServer.readObject(); 
+                    } catch (Exception e){
+                        System.err.println(e.getMessage());
                     }
 
-                    do{
-                        inFromServer = new ObjectInputStream(socket.getInputStream());
-                        message_distant = inFromServer.readUTF();
-
-                        if(rep.equalsIgnoreCase("notset-Joueur")){
-                            sendJoueur(s, j);
-                        }else if(rep.equalsIgnoreCase("exist-Joueur")){
-                            
-                        }else if(rep.equalsIgnoreCase("")){
+                    if(ans.intent.equalsIgnoreCase("auth")){
+                        if(resp.answer.equalsIgnoreCase("auth-success")){
+                            System.out.println("Authentification reussi");
+                            j = resp.getJoueur();
                             auth = true;
-                        }else if(!auth){
-                            outToClient = new ObjectOutputStream(s.getOutputStream());
-                            Thread.sleep(1000);
-                            outToClient.writeUTF("login");
-                            outToClient.flush();
-                        }else if(auth){
-                            startGame = true;
-                            outToClient = new ObjectOutputStream(s.getOutputStream());
-                            Thread.sleep(1000);
-                            outToClient.writeUTF("game-start");
-                            outToClient.flush();
+                        }else if(resp.answer.equalsIgnoreCase("auth-fail")){
+                            System.out.println("Authentification échoué");
+                        } else {
+                            System.err.println("Erreur de communication avec le serveur");
                         }
-                    }while (rep.equalsIgnoreCase("disconnect"));
+                    }else if(ans.intent.equalsIgnoreCase("register")){
+                        if(resp.answer.equalsIgnoreCase("register-success")){
+                            System.out.println("Inscription reussi");
+                            j = resp.getJoueur();
+                            auth = true;
+                        } else {
+                            System.err.println("Erreur de communication avec le serveur (ER001)");
+                        }
+                    }
+                }while(!auth);
 
+                pause();
+
+                System.out.println("Préparation du jeux");
+
+                resp = new Requete(null, "start", null, 0L);
+                outToServer.writeObject(resp);
+
+                try{
+                   resp = (Requete) inFromServer.readObject(); 
+                } catch (Exception e){
+                    System.err.println(e.getMessage());
+                }
+
+                if(ans.answer.equalsIgnoreCase("start-ok")){
+
+                    boolean win = false;
+                    String answer;
+                    do {
+                        System.out.flush();
+                        System.out.println("Proposer une suite de 5 lettre :");
+                        answer = sc.nextLine();
+                        if(answer.length() == 5){
+                            resp = new Requete(null, "try", answer, 0L);
+                            outToServer.writeObject(resp);
+
+                            try{
+                               resp = (Requete) inFromServer.readObject(); 
+                            } catch (Exception e){
+                                System.err.println(e.getMessage());
+                            }
+
+                            if(ans.intent.equalsIgnoreCase("answer")){
+                                String[] tokens = ans.answer.split(":");
+                                System.out.println(tokens[0] + " lettre(s) sont bonnes et " + tokens[1] + " lettres sont bien placée(s)." );
+                            }else if(ans.answer.equalsIgnoreCase("game-success")){
+                                System.out.println("Bravo tu à trouvée en " + ans.time);
+                                win = true;
+                            }else {
+                                System.err.println("Erreur de communication avec le serveur (ER003)");
+                            }
+                        }else {
+                            System.err.println("Format de la réponse incorect");
+                        }
+                        pause();
+                    }while(win);
                 } else {
-                    System.out.println("Le serveur à réfusé la connexion (" + message_distant + ")");
+                    System.err.println("Erreur de communication avec le serveur (ER002)");
                 }
-                outToServer.flush();
+                
 
-                //attente du message de validation d'authentification du serveur
-                inFromServer = new ObjectInputStream(socket.getInputStream());
-                message_distant = inFromServer.readUTF();
-                if (message_distant.equalsIgnoreCase(new String("Auth-ok"))) {
-                    System.out.println("Authentification réussie (" + message_distant + ")");
-                }
-
+            } else {
+               System.err.println("Connexion au serveur echouée"); 
             }
-
+            
             //fermeture de la connexion
             socket.close();
 
@@ -100,6 +146,7 @@ public class Client {
 
         String ipAddr;
         boolean ipAddrValid;
+        Scanner sc = new Scanner(System.in);
 
         //Demande de l'adresse ip
         do {
@@ -115,39 +162,55 @@ public class Client {
         return ipAddr;
     }
 
-    public static String joueurLogin(){
-        String license;
+    public static Requete authentification(){
+        int choix;
+        Scanner sc = new Scanner(System.in);
+
+        //Demande d'authetification
+        do {
+            System.out.println("Choisissez la maniére de vous identifier :");
+            System.out.println("1. Connexion");
+            System.out.println("2. Inscription");
+            System.out.println("Entrez 1 ou 2 pour votre choix :");
+            choix = sc.nextInt();
+            if (choix != 1 && choix != 2) {
+                System.err.println("Format invalid");
+            }
+            System.out.flush();
+        } while (choix != 1 && choix != 2);
+
+        if(choix == 1){
+            int license = joueurLogin();
+            Joueur j = new Joueur(license);
+            return new Requete(j, "auth", null, 0L);
+        } else {
+            Joueur j = joueurRegister();
+            return new Requete(j, "register", null, 0L);
+        }
+    }
+
+    public static int joueurLogin(){
+        int license;
         boolean licenseValid;
+        Scanner sc = new Scanner(System.in);
         //Demande de la license
         do {
             System.out.println("Entree votre clé de license :");
-            license = sc.nextLine();
-            licenseValid = Client.validateLicense(license);
-            if (!licenseValid) {
+            license = sc.nextInt();
+            if (license >= 000 && license <= 999) {
                 System.err.println("Format de la license invalid");
             }
             System.out.flush();
-        } while (!licenseValid);
+        } while (license >= 000 && license <= 999);
 
         return license;
     }
 
     public static Joueur joueurRegister(){
 
-        String nom, prenom, license, ipAddr;
-        boolean nomValid, prenomValid, licenseValid, ipAddrValid;
+        String nom, prenom;
+        boolean nomValid, prenomValid;
         Scanner sc = new Scanner(System.in);
-
-        //Demande de la license
-        do {
-            System.out.println("Entree votre clé de license :");
-            license = sc.nextLine();
-            licenseValid = Client.validateLicense(license);
-            if (!licenseValid) {
-                System.err.println("Format de la license invalid");
-            }
-            System.out.flush();
-        } while (!licenseValid);
         
         //Demande du nom
         do {
@@ -172,32 +235,7 @@ public class Client {
         } while (!prenomValid);
 
         // Joueur a partager avec le serveur.
-        return new Joueur(nom, prenom, license); 
-    }
-
-    public static boolean sendJoueur(socket s, Joueur j){
-
-        ObjectOutputStream outToClient;
-        ObjectInputStream inFromClient;
-
-        outToClient = new ObjectOutputStream(s.getOutputStream());
-        Thread.sleep(1000);
-        outToClient.writeUTF("send-Joueur");
-        outToClient.flush();
-
-        Thread.sleep(1000); 
-        inFromClient = new ObjectInputStream (s.getInputStream());
-        String rep = inFromClient.readUTF();
-
-        if(rep.equalsIgnoreCase("wait-Joueur")){
-            outToClient = new ObjectOutputStream(s.getOutputStream());
-            Thread.sleep(1000);
-            outToClient.writeObject(j);
-            outToClient.flush();
-            return true;
-        } else {
-            return false;
-        }
+        return new Joueur(nom, prenom, 0000); 
     }
 
     /**
@@ -240,25 +278,14 @@ public class Client {
     }
 
     /**
-     * Valide la bon format d'une license du jeu
+     * Mettre le programme en attente
      *
-     * @param license license à valider
      * @return boolean
      */
-    public static boolean validateLicense(String license) {
-        String[] tokens = license.split("-");
-
-        if (tokens.length != 4) {
-            return false;
-        }
-
-        for (String str : tokens) {
-            int i = Integer.parseInt(str);
-            if ((i < 0) || (i > 999)) {
-                return false;
-            }
-        }
-
-        return true;
+    public static void pause() {
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Pour continuer appuyer sur une touche :");
+        sc.nextLine();
+        System.out.flush();
     }
 }
