@@ -181,12 +181,13 @@ class Server extends Thread{
         
 
         try{
-            //remplir le fichier par un élément de test
-            fis=new FileInputStream("players.txt");
-            ois= new ObjectInputStream(fis);
-            playerLst=(List<Joueur>)ois.readObject();
-            ois.close();
-            fis.close();
+            if(f.exists() && !f.isDirectory()) { 
+                fis=new FileInputStream("players.txt");
+                ois= new ObjectInputStream(fis);
+                playerLst=(List<Joueur>)ois.readObject();
+                ois.close();
+                fis.close();
+            }
             if(playerLst.size()==0){
                 fos=new FileOutputStream("players.txt");
                 oos= new ObjectOutputStream(fos);
