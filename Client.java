@@ -57,7 +57,7 @@ public class Client {
                     } catch (Exception e){
                         System.err.println(e.getMessage());
                     }
-
+                    System.err.println(resp.answer);
                     if(ans.intent.equalsIgnoreCase("login")){
                         if(resp.answer.equalsIgnoreCase("login-success")){
                             System.out.println("Authentification reussi");
@@ -112,19 +112,19 @@ public class Client {
                             }
 
                             if(resp.intent.equalsIgnoreCase("answer")){
-                                String[] tokens = ans.answer.split(":");
-                                System.out.println(tokens[0] + " lettre(s) sont bonnes et " + tokens[1] + " lettres sont bien placée(s)." );
-                            }else if(resp.answer.equalsIgnoreCase("game-success")){
-                                System.out.println("Bravo tu à trouvée en " + ans.time);
+                                String[] tokens = resp.answer.split(":");
+                                System.out.println(tokens[1] + " lettre(s) sont bonnes et " + tokens[0] + " lettres sont bien placée(s) en "+resp.time+"s");
+                            }else if(resp.intent.equalsIgnoreCase("game-success")){
+                                System.out.println("Bravo tu à trouvé en " + resp.time);
                                 win = true;
                             }else {
                                 System.err.println("Erreur de communication avec le serveur (ER003)");
                             }
                         }else {
-                            System.err.println("Format de la réponse incorect");
+                            System.err.println("Format de la réponse incorrect");
                         }
                         pause();
-                    }while(win);
+                    }while(!win);
                 } else {
                     System.err.println("Erreur de communication avec le serveur (ER002)");
                 }
@@ -199,11 +199,11 @@ public class Client {
         do {
             System.out.println("Entree votre clé de license :");
             license = sc.nextInt();
-            if (license <= 1 && license >= 10000) {
+            if (license < 1 && license >=10000) {
                 System.err.println("Format de la license invalid");
             }
             System.out.flush();
-        } while (license < 0001 && license >= 10000);
+        } while (license < 1 && license >=10000);
 
         return license;
     }

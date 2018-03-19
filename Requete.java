@@ -1,11 +1,13 @@
 import java.io.Serializable;
 
+
 class Requete implements Serializable{
-    final static long serialVersionUID =2L;
+    final static long serialVersionUID = 1L;
     Joueur j;
-    public String intent;
-    public String answer;
-    public long time;
+    String intent;
+    String answer;
+    long time;
+    public Requete(){}
     public Requete(Joueur j, String intent,String answer,long time){
         this.j=j;
         this.intent = intent;

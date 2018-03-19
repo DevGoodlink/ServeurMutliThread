@@ -61,7 +61,7 @@ class Server extends Thread{
                 String ipAddress = socket.getRemoteSocketAddress().toString();
                 ObjectOutputStream toClient = new ObjectOutputStream(socket.getOutputStream());
                 ObjectInputStream fromClient = new ObjectInputStream(socket.getInputStream());
-                String modle = "Bievenue, vous êtes connecté au serveur de jeux";
+                String modle = "Bievenue, vous êtes connecté au serveur de jeux \n"+resultatsInOut(true,null);
                 resp = new Requete(null,"connected","connected :\n"+ modle,0L); //afficher la liste des score à la connexion
                 toClient.writeObject(resp);
                 Thread.sleep(5000);
@@ -101,24 +101,36 @@ class Server extends Thread{
                         resp=new Requete(null, null, "start-ok", temps);
                     }
                     if(req.intent.equalsIgnoreCase("try")){
-                        int[] res = verifier(mot, req.intent);
-                        if(res[0]==5 && res[1]==5)
-                            resp=new Requete(j, null,"game-success", temps);
+                        int[] res = verifier(mot, req.answer);
+                        if(res[0]==5 && res[1]==5){
+                            if (tempsJeu<60){
+                                j.score+=10;
+                                resultatsInOut(false,j );//enregistrement des résultats sur le fichier
+                            }
+                            else if(tempsJeu>60 && tempsJeu<60*3){
+                                j.score+=5;
+                                resultatsInOut(false,j );//enregistrement des résultats sur le fichier
+                            }
+                            else if(tempsJeu>60*3 && tempsJeu<60*5){
+                                j.score+=2;
+                                resultatsInOut(false,j );//enregistrement des résultats sur le fichier
+                            }
+                            else if(tempsJeu>60*5)
+                            {
+                                j.score+=1;
+                                resultatsInOut(false,j );//enregistrement des résultats sur le fichier
+                            }
+                            resp=new Requete(j, "try","game-success", temps);
+                        }
+                            
                         else
                             resp=new Requete(null, "answer",""+res[0]+":"+res[1], temps);
-                        //Enregistrement de score
-                        if (tempsJeu<60)j.score+=10;
-                        else if(tempsJeu>60 && tempsJeu<60*3)j.score+=5;
-                        else if(tempsJeu>60*3 && tempsJeu<60*5)j.score+=2;
-                        else if(tempsJeu>60*5)j.score+=1;
-
-                        resultatsInOut(false,j );//enregistrement des résultats sur le fichier
                     }
                     if(req.intent.equalsIgnoreCase("abondon")){
                         this.j.score-=5;
                     }
-                    else
-                        resp=new Requete(null, null, "ambigus or unknown", temps);
+                   /* else
+                        resp=new Requete(null, null, "ambigus or unknown", temps);*/
 
                     toClient.writeObject(resp);
                     debut = System.currentTimeMillis();
@@ -218,7 +230,7 @@ class Server extends Thread{
             fos.close();
         }
         if(l){//login
-            System.out.println("Login launched for j = "+j.licence);
+            System.out.println("Login launched for licence = "+j.licence);
             Joueur foundJoueur=null;
             foundJoueur = lst.stream().filter(e->e.equals(j)).findFirst().get();
             if(foundJoueur==null){
@@ -264,12 +276,13 @@ class Server extends Thread{
 		return mot;
 	}
 	private static synchronized int[] verifier(String mot, String proposition) {
+        System.out.println("mot = "+mot+" prop = "+proposition);
 		int[] resultat = { 0, 0 };
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < 5; ++i) {
 			if (mot.charAt(i) == proposition.charAt(i))
-				resultat[0]++;//incrémenter nombre de lettres correctes
+				resultat[0]+=1;//incrémenter nombre de lettres correctes
 			if (mot.contains("" + proposition.charAt(i)))
-				resultat[1]++;//incrémenter nombre de lettre existantes
+				resultat[1]+=1;//incrémenter nombre de lettre existantes
 		}
 		return resultat;
     }
