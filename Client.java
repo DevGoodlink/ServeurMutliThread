@@ -101,6 +101,7 @@ public class Client {
                         if(resp.answer.equalsIgnoreCase("signup-success")){
                             System.out.println("Inscription reussi");
                             j = resp.getJoueur();
+                            System.out.println("Votre numéro de license : " + j.licence);
                             auth = true;
                         // Message inatendu du serveur
                         } else {
@@ -163,7 +164,7 @@ public class Client {
                                     System.out.println(tokens[1] + " lettre(s) sont bonnes et " + tokens[0] + " lettres sont bien placée(s) en "+resp.time+"s");
                                 // Si j'ai gagnée
                                 }else if(resp.intent.equalsIgnoreCase("game-success")){
-                                    System.out.println("Bravo tu à trouvé en " + resp.time);
+                                    System.out.println("Bravo tu à trouvé en " + resp.time + " secondes");
                                     win = true;
                                 }else {
                                     System.err.println("Erreur de communication avec le serveur (ER003)");
